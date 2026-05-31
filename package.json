@@ -20,6 +20,7 @@
   "build": {
     "appId": "com.djnurk.nurkalyzed",
     "productName": "NURKALYZED",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "directories": { "output": "dist" },
     "files": [
       "index.html",

@@ -1,0 +1,85 @@
+name: Build desktop apps
+
+# Push a version tag from the `desktop` branch to cut a release:
+#   git checkout desktop && git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}      # manual run (visible if this file is on the default branch)
+
+permissions:
+  contents: write             # create the Release and upload the installers
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac      # → .dmg (arm64 + x64)
+          - os: windows-latest
+            platform: win      # → .exe (NSIS)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build ${{ matrix.platform }} installer
+        run: npx --no-install electron-builder --${{ matrix.platform }} --publish never
+        env:
+          # Builds succeed UNSIGNED with no secrets set. Add these repo secrets
+          # later to sign/notarize automatically (see DESKTOP.md):
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"        # don't probe the keychain on CI
+          CSC_LINK: ${{ secrets.CSC_LINK }}            # base64 .p12 cert (optional)
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}            # macOS notarization (optional)
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nurkalyzed-${{ matrix.platform }}
+          if-no-files-found: ignore
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest*.yml
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create / update the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -d '' FILES < <(find artifacts -type f -print0)
+          echo "Release assets:"; printf '  - %s\n' "${FILES[@]}"
+          if gh release view "${{ github.ref_name }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "${{ github.ref_name }}" "${FILES[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "${{ github.ref_name }}" "${FILES[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NURKALYZED ${{ github.ref_name }}" \
+              --generate-notes
+          fi
