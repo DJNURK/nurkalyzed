@@ -1,10 +1,15 @@
 # NURKALYZED — Desktop app (Electron)
 
-The desktop build wraps the same web app in [Electron](https://electronjs.org) and
-adds **direct internal/system-audio capture** — no BlackHole or loopback device:
+The desktop build wraps the same web app in [Electron](https://electronjs.org).
 
-- **Windows** → WASAPI loopback
-- **macOS 13+** → ScreenCaptureKit loopback (asks for *Screen Recording* permission once)
+**Capturing your computer's output:**
+- **Windows** → select **Stereo Mix / VB-Cable** (or use the screen-loopback source) — WASAPI works well here.
+- **macOS** → macOS does **not** let an app read the speaker output directly, so the app
+  defaults to a **device picker** (Source → *Computer Audio / Input*) and auto-selects a
+  **loopback device** if one is present. To capture your output, install
+  [**BlackHole**](https://existential.audio/blackhole/) (free), make a *Multi-Output Device*
+  (speakers + BlackHole) in **Audio MIDI Setup**, set it as your output, then pick **BlackHole**.
+  (The screen-recording loopback source exists too, but it's unreliable on unsigned builds.)
 
 This lives on the **`desktop` branch**; `main` stays a plain static site for the web/Vercel.
 
@@ -14,8 +19,8 @@ git checkout desktop
 npm install          # installs electron + electron-builder
 npm start            # launches the app
 ```
-Pick **Source → System / Tab Audio → Start** and it analyzes whatever your computer is
-playing. (Demo signal and Microphone / Input work here too.)
+The desktop app opens on **Source → Computer Audio / Input**; pick your device (a loopback
+device = your computer's output) and **Start**. (Demo signal works here too with no setup.)
 
 ## Build installers
 ```bash

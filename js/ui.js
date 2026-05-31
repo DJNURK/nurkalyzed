@@ -84,14 +84,19 @@ export class UI {
     if (!el) return;
     let html;
     if (type === 'display' && this._isElectron) {
-      html = '<span class="ic">ⓘ</span><span>Desktop app: <b>Start</b> captures your computer’s <b>full system audio</b> directly — no loopback device needed.' +
-        (this._isMac ? ' macOS will ask for <b>Screen Recording</b> permission the first time (grant it in System Settings, then reopen NURKALYZED).' : '') + '</span>';
+      html = '<span class="ic">ⓘ</span><span>This uses macOS screen-recording loopback, which is <b>unreliable on unsigned apps</b>. <b>Recommended:</b> switch to <b>Computer Audio / Input</b> and pick a loopback device to analyze your output.</span>';
     } else if (type === 'display') {
       html = this._isMac
         ? '<span class="ic">ⓘ</span><span>Start opens a <b>screen-share picker</b> (the audio is the <b>“Share tab audio”</b> checkbox — there’s no separate popup). On macOS this needs <b>Chrome/Edge</b> + Screen-Recording permission, and only a <b>Chrome tab</b> can share audio. <b>More reliable:</b> use <b>Microphone / Input</b> with a loopback device like <b>BlackHole</b> for full system sound.</span>'
         : '<span class="ic">ⓘ</span><span>Start opens a <b>screen-share picker</b> — audio is the <b>“Share audio”</b> checkbox there. Pick a tab (<b>Share tab audio</b>) or <b>Entire screen</b> (<b>Share system audio</b>).</span>';
     } else if (type === 'mic') {
-      html = '<span class="ic">ⓘ</span><span>Pick your input device. To analyze what your <b>computer is playing</b>, select a loopback device — e.g. <b>BlackHole</b> (macOS), <b>VB-Cable</b> (Windows) or <b>Stereo Mix</b>.</span>';
+      if (this._isElectron && this._hasLoopback) {
+        html = '<span class="ic">↺</span><span>Analyzing the selected <b>loopback device</b> (your computer’s output). Change the device above to switch sources.</span>';
+      } else if (this._isElectron && this._isMac) {
+        html = '<span class="ic">ⓘ</span><span>macOS can’t record the speakers directly, so route them through a free virtual device: install <b>BlackHole</b>, make a <b>Multi-Output</b> (speakers + BlackHole) in <b>Audio MIDI Setup</b>, set it as your output, then pick <b>BlackHole</b> above — that <i>is</i> your computer’s output. Or choose your mic to analyze room sound.</span>';
+      } else {
+        html = '<span class="ic">ⓘ</span><span>Pick your input device. To analyze what your <b>computer is playing</b>, select a loopback device — e.g. <b>BlackHole</b> (macOS), <b>VB-Cable</b> (Windows) or <b>Stereo Mix</b>.</span>';
+      }
     } else {
       html = '<span class="ic">ⓘ</span><span><b>Demo signal</b> plays a synthesized test tone <b>inside the app</b> — no microphone, no permissions, works in any browser. Hit <b>Start</b> to watch every meter come alive, then switch to a real source.</span>';
     }
@@ -154,14 +159,23 @@ export class UI {
       sel.appendChild(o);
       return;
     }
+    // A loopback / virtual device is how you capture the computer's *output*.
+    const LOOPBACK = /blackhole|soundflower|loopback|aggregate|multi.?output|vb.?(audio|cable)|stereo ?mix|wave ?link|voicemeeter/i;
+    let loopbackId = null;
     devices.forEach((d, i) => {
       const o = document.createElement('option');
       o.value = d.deviceId;
-      o.textContent = d.label || `Input ${i + 1}`;
+      const isLoop = LOOPBACK.test(d.label || '');
+      o.textContent = (isLoop ? '↺ ' : '') + (d.label || `Input ${i + 1}`);
       sel.appendChild(o);
+      if (isLoop && !loopbackId) loopbackId = d.deviceId;
     });
-    if (prev) sel.value = prev;
+    // Prefer a loopback device (= your computer's output); else keep prior/first.
+    if (loopbackId) sel.value = loopbackId;
+    else if (prev) sel.value = prev;
     this.selectedDeviceId = sel.value || null;
+    this._hasLoopback = !!loopbackId;
+    if (this.sourceType === 'mic') this.updateHint('mic'); // reflect loopback availability
   }
 
   /* ----- settings drawer ----- */

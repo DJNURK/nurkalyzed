@@ -412,8 +412,17 @@ export class AudioEngine {
 
   async listInputDevices() {
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      return devices.filter((d) => d.kind === 'audioinput');
+      let inputs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+      // Device labels stay hidden until mic permission is granted. In the desktop
+      // app, briefly open a stream to unlock them so we can spot a loopback device.
+      if (window.NURK_DESKTOP?.isElectron && inputs.length && inputs.every((d) => !d.label)) {
+        try {
+          const tmp = await navigator.mediaDevices.getUserMedia({ audio: true });
+          tmp.getTracks().forEach((t) => t.stop());
+          inputs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+        } catch { /* permission denied — labels stay generic */ }
+      }
+      return inputs;
     } catch { return []; }
   }
 }

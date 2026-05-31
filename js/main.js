@@ -45,6 +45,16 @@ ui.onSourceChange(async (type) => {
   if (type === 'mic') ui.populateDevices(await engine.listInputDevices());
 });
 
+// Desktop app: default to the audio-device picker (reliable) instead of the
+// flaky screen-recording path, and label it for what it is.
+if (window.NURK_DESKTOP?.isElectron) {
+  const micOpt = document.querySelector('#sourceType option[value="mic"]');
+  if (micOpt) micOpt.textContent = 'Computer Audio / Input';
+  const sel = document.querySelector('#sourceType');
+  sel.value = 'mic';
+  sel.dispatchEvent(new Event('change')); // reveals device dropdown + hint + populates devices
+}
+
 const LIVE_LABEL = { display: 'Live · system', mic: 'Live · input', demo: 'Live · demo' };
 const START_TOAST = {
   display: 'Capturing shared audio. <b>Tip:</b> share a tab and tick “Share audio” for cleanest results.',
