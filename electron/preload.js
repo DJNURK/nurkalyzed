@@ -1,12 +1,15 @@
 /* ===================================================================
-   preload.js — runs in an isolated context with access to Electron.
-   We expose only a tiny, read-only flag so the renderer can tell it's
-   running inside the desktop app (and behave accordingly).
+   preload.js — isolated bridge to the renderer.
+   Exposes the desktop flag + the loopback enable/disable IPC that
+   electron-audio-loopback's initMain() registers in the main process.
+   (Works under sandbox:true — contextBridge/ipcRenderer are available.)
    =================================================================== */
 
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('NURK_DESKTOP', {
   isElectron: true,
   platform: process.platform, // 'darwin' | 'win32' | 'linux'
+  enableLoopbackAudio: () => ipcRenderer.invoke('enable-loopback-audio'),
+  disableLoopbackAudio: () => ipcRenderer.invoke('disable-loopback-audio'),
 });

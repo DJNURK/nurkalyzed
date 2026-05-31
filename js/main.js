@@ -45,14 +45,12 @@ ui.onSourceChange(async (type) => {
   if (type === 'mic') ui.populateDevices(await engine.listInputDevices());
 });
 
-// Desktop app: default to the audio-device picker (reliable) instead of the
-// flaky screen-recording path, and label it for what it is.
+// Desktop app: "System Audio" captures internal audio natively (Core Audio tap
+// on macOS 14.4+, WASAPI on Windows), so keep it as the default and label it.
 if (window.NURK_DESKTOP?.isElectron) {
-  const micOpt = document.querySelector('#sourceType option[value="mic"]');
-  if (micOpt) micOpt.textContent = 'Computer Audio / Input';
-  const sel = document.querySelector('#sourceType');
-  sel.value = 'mic';
-  sel.dispatchEvent(new Event('change')); // reveals device dropdown + hint + populates devices
+  const dispOpt = document.querySelector('#sourceType option[value="display"]');
+  if (dispOpt) dispOpt.textContent = 'System Audio (internal)';
+  ui.updateHint('display');
 }
 
 const LIVE_LABEL = { display: 'Live · system', mic: 'Live · input', demo: 'Live · demo' };

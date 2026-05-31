@@ -74,7 +74,22 @@ export class AudioEngine {
     //    ours may `await` ahead of it.
     const constraintsAudio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
     let stream;
-    if (sourceType === 'display') {
+    if (sourceType === 'display' && window.NURK_DESKTOP?.isElectron && window.NURK_DESKTOP.enableLoopbackAudio) {
+      // Desktop app: native system-audio loopback (Core Audio tap on macOS 14.4+,
+      // WASAPI on Windows) — no BlackHole, no Screen Recording. The main process
+      // intercepts getDisplayMedia and supplies the loopback stream.
+      await window.NURK_DESKTOP.enableLoopbackAudio();
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      } finally {
+        await window.NURK_DESKTOP.disableLoopbackAudio();
+      }
+      for (const t of stream.getVideoTracks()) { t.stop(); stream.removeTrack(t); }
+      if (stream.getAudioTracks().length === 0) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error('No system audio was captured. On macOS this needs version 14.4 or newer (Core Audio tap); if prompted for audio permission, allow it and press Start again.');
+      }
+    } else if (sourceType === 'display') {
       if (!navigator.mediaDevices.getDisplayMedia) {
         throw new Error('This browser can’t capture tab/system audio. Use Chrome or Edge, or switch Source to “Microphone / Input”.');
       }

@@ -84,7 +84,8 @@ export class UI {
     if (!el) return;
     let html;
     if (type === 'display' && this._isElectron) {
-      html = '<span class="ic">ⓘ</span><span>This uses macOS screen-recording loopback, which is <b>unreliable on unsigned apps</b>. <b>Recommended:</b> switch to <b>Computer Audio / Input</b> and pick a loopback device to analyze your output.</span>';
+      html = '<span class="ic">↺</span><span>Captures your computer’s <b>full system audio</b> directly — <b>no BlackHole, no screen recording</b> (Core Audio tap on macOS 14.4+, WASAPI on Windows). Just press <b>Start</b>.' +
+        (this._isMac ? ' macOS may ask for audio permission once — allow it.' : '') + '</span>';
     } else if (type === 'display') {
       html = this._isMac
         ? '<span class="ic">ⓘ</span><span>Start opens a <b>screen-share picker</b> (the audio is the <b>“Share tab audio”</b> checkbox — there’s no separate popup). On macOS this needs <b>Chrome/Edge</b> + Screen-Recording permission, and only a <b>Chrome tab</b> can share audio. <b>More reliable:</b> use <b>Microphone / Input</b> with a loopback device like <b>BlackHole</b> for full system sound.</span>'

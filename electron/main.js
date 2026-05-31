@@ -1,20 +1,21 @@
 /* ===================================================================
    NURKALYZED — Electron main process.
 
-   The whole point of the desktop build: capture the computer's *internal*
-   audio without a loopback device like BlackHole. We do that by handling
-   the renderer's getDisplayMedia() request ourselves and attaching the
-   system audio loopback:
-
-     • Windows           → WASAPI loopback
-     • macOS 13+ (Ventura) → ScreenCaptureKit loopback
-       (needs Screen Recording permission, granted once in System Settings)
-
-   The renderer is your existing web app, unchanged.
+   System-audio capture (no BlackHole, no Screen Recording) is provided by
+   `electron-audio-loopback`, which drives Electron's native loopback:
+     • macOS 14.4+  → Core Audio process tap   (forceCoreAudioTap)
+     • Windows      → WASAPI loopback
+   initMain() must run before the app is ready (it sets the needed flags).
+   The renderer enables loopback over IPC, then calls getDisplayMedia().
    =================================================================== */
 
-const { app, BrowserWindow, session, desktopCapturer, systemPreferences, Menu } = require('electron');
+const { app, BrowserWindow, Menu, systemPreferences } = require('electron');
+const { initMain } = require('electron-audio-loopback');
 const path = require('path');
+
+// Force the Core Audio tap path on macOS so system audio works without a
+// loopback device or Screen-Recording permission. Must precede app "ready".
+initMain({ forceCoreAudioTap: true });
 
 let win = null;
 
@@ -35,24 +36,12 @@ function createWindow() {
     },
   });
 
-  // Feed system-audio loopback into the renderer's getDisplayMedia() call.
-  // `audio: 'loopback'` = whatever the speakers are playing.
-  session.defaultSession.setDisplayMediaRequestHandler(
-    (request, callback) => {
-      desktopCapturer
-        .getSources({ types: ['screen'] })
-        .then((sources) => callback({ video: sources[0], audio: 'loopback' }))
-        .catch(() => callback({})); // user/OS denied — renderer gets an empty stream
-    },
-    { useSystemPicker: false }
-  );
-
   win.once('ready-to-show', () => win.show());
   win.loadFile(path.join(__dirname, '..', 'index.html'));
 }
 
 app.whenReady().then(() => {
-  // Pre-warm the microphone permission prompt on macOS for the "Microphone" source.
+  // Pre-warm the macOS audio permission prompt (input devices + tap).
   if (process.platform === 'darwin') {
     systemPreferences.askForMediaAccess('microphone').catch(() => {});
   }
