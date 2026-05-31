@@ -63,8 +63,9 @@ export class AudioEngine {
       return;
     }
 
-    // Capture APIs require a secure context (https or localhost).
-    if (!window.isSecureContext || !navigator.mediaDevices) {
+    // Capture APIs require a secure context (https or localhost) — except in
+    // the desktop (Electron) build, which is inherently trusted.
+    if (!window.NURK_DESKTOP?.isElectron && (!window.isSecureContext || !navigator.mediaDevices)) {
       throw new Error('Open this over http://localhost or https:// — browsers block audio capture on insecure pages (a file:// path or a bare LAN IP won’t work).');
     }
 

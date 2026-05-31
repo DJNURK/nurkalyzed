@@ -10,3 +10,7 @@ Thumbs.db
 /.claude/
 .vercel/
 node_modules/
+
+# desktop build output (electron-builder)
+dist/
+out/

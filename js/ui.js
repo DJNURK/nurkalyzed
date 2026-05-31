@@ -20,6 +20,7 @@ export class UI {
     this.store = store;
     this.$ = (sel) => document.querySelector(sel);
     this._isMac = /Mac|iPhone|iPad/i.test(navigator.platform || '') || /Mac OS/i.test(navigator.userAgent || '');
+    this._isElectron = !!(window.NURK_DESKTOP && window.NURK_DESKTOP.isElectron);
     this.panels = {};
     document.querySelectorAll('.panel').forEach((p) => { this.panels[p.dataset.panel] = p; });
 
@@ -82,7 +83,10 @@ export class UI {
     const el = this.$('#hintBar');
     if (!el) return;
     let html;
-    if (type === 'display') {
+    if (type === 'display' && this._isElectron) {
+      html = '<span class="ic">ⓘ</span><span>Desktop app: <b>Start</b> captures your computer’s <b>full system audio</b> directly — no loopback device needed.' +
+        (this._isMac ? ' macOS will ask for <b>Screen Recording</b> permission the first time (grant it in System Settings, then reopen NURKALYZED).' : '') + '</span>';
+    } else if (type === 'display') {
       html = this._isMac
         ? '<span class="ic">ⓘ</span><span>Start opens a <b>screen-share picker</b> (the audio is the <b>“Share tab audio”</b> checkbox — there’s no separate popup). On macOS this needs <b>Chrome/Edge</b> + Screen-Recording permission, and only a <b>Chrome tab</b> can share audio. <b>More reliable:</b> use <b>Microphone / Input</b> with a loopback device like <b>BlackHole</b> for full system sound.</span>'
         : '<span class="ic">ⓘ</span><span>Start opens a <b>screen-share picker</b> — audio is the <b>“Share audio”</b> checkbox there. Pick a tab (<b>Share tab audio</b>) or <b>Entire screen</b> (<b>Share system audio</b>).</span>';
