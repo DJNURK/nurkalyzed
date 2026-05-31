@@ -37,14 +37,12 @@ jobs:
       - name: Build ${{ matrix.platform }} installer
         run: npx --no-install electron-builder --${{ matrix.platform }} --publish never
         env:
-          # Builds succeed UNSIGNED with no secrets set. Add these repo secrets
-          # later to sign/notarize automatically (see DESKTOP.md):
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"        # don't probe the keychain on CI
-          CSC_LINK: ${{ secrets.CSC_LINK }}            # base64 .p12 cert (optional)
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}            # macOS notarization (optional)
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Build UNSIGNED by default. We must NOT pass an empty CSC_LINK — an
+          # empty cert path makes electron-builder fail with "<projectDir> not a
+          # file" on macOS. To sign + notarize later, add the cert/Apple secrets
+          # to the repo and re-introduce CSC_LINK / CSC_KEY_PASSWORD / APPLE_*
+          # here (see DESKTOP.md).
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
