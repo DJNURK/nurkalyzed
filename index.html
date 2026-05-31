@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NURKALYZED — a fully customizable real-time audio analyzer for your computer's audio." />
+  <title>NURKALYZED — Audio Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ====================== TOP BAR ====================== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        <span class="bar"></span><span class="bar"></span>
+      </div>
+      <div class="brand-text">
+        <h1>NURKALYZED</h1>
+        <span class="brand-sub">audio analyzer</span>
+      </div>
+    </div>
+
+    <div class="source-controls">
+      <div class="select-wrap">
+        <label for="sourceType">Source</label>
+        <select id="sourceType" title="Where to capture audio from">
+          <option value="display">System / Tab Audio</option>
+          <option value="mic">Microphone / Input</option>
+          <option value="demo">Demo signal (no mic)</option>
+        </select>
+      </div>
+      <div class="select-wrap" id="deviceWrap" hidden>
+        <label for="deviceSelect">Device</label>
+        <select id="deviceSelect" title="Input device"></select>
+      </div>
+      <button id="startBtn" class="btn btn-primary">
+        <span class="dot"></span><span class="label">Start</span>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="status" id="status" data-state="idle">
+      <span class="status-dot"></span>
+      <span class="status-text">Idle</span>
+    </div>
+
+    <div class="tool-buttons">
+      <button id="pauseBtn" class="btn btn-icon" title="Freeze / resume (Space)" disabled aria-label="Freeze">⏸</button>
+      <button id="fullscreenBtn" class="btn btn-icon" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+      <button id="settingsBtn" class="btn btn-icon" title="Settings (S)" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- ====================== SOURCE HINT ====================== -->
+  <div class="hintbar" id="hintBar" hidden></div>
+
+  <!-- ====================== PANEL GRID ====================== -->
+  <main class="grid" id="panelGrid">
+    <!-- Spectrum -->
+    <section class="panel" data-panel="spectrum" style="--span: 2;">
+      <div class="panel-head">
+        <h2>Spectrum</h2>
+        <div class="panel-readout" id="spectrumReadout"></div>
+        <div class="panel-actions">
+          <button class="chip" data-action="expand" title="Toggle wide">⤢</button>
+        </div>
+      </div>
+      <div class="canvas-host">
+        <canvas data-canvas="spectrum"></canvas>
+      </div>
+    </section>
+
+    <!-- Spectrogram -->
+    <section class="panel" data-panel="spectrogram">
+      <div class="panel-head">
+        <h2>Spectrogram</h2>
+        <div class="panel-actions">
+          <button class="chip" data-action="expand" title="Toggle wide">⤢</button>
+        </div>
+      </div>
+      <div class="canvas-host">
+        <canvas data-canvas="spectrogram"></canvas>
+      </div>
+    </section>
+
+    <!-- Waveform -->
+    <section class="panel" data-panel="waveform">
+      <div class="panel-head">
+        <h2>Oscilloscope</h2>
+        <div class="panel-actions">
+          <button class="chip" data-action="expand" title="Toggle wide">⤢</button>
+        </div>
+      </div>
+      <div class="canvas-host">
+        <canvas data-canvas="waveform"></canvas>
+      </div>
+    </section>
+
+    <!-- Meters -->
+    <section class="panel panel-narrow" data-panel="meters">
+      <div class="panel-head">
+        <h2>Loudness</h2>
+      </div>
+      <div class="canvas-host">
+        <canvas data-canvas="meters"></canvas>
+      </div>
+    </section>
+
+    <!-- Goniometer -->
+    <section class="panel panel-narrow" data-panel="goniometer">
+      <div class="panel-head">
+        <h2>Stereo Image</h2>
+      </div>
+      <div class="canvas-host">
+        <canvas data-canvas="goniometer"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====================== SETTINGS DRAWER ====================== -->
+  <aside class="drawer" id="settings" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>Settings</h2>
+      <button class="btn btn-icon" id="settingsClose" aria-label="Close settings">✕</button>
+    </div>
+    <div class="drawer-toolbar">
+      <input type="search" id="settingsSearch" placeholder="Filter settings…" />
+      <div class="drawer-toolbar-btns">
+        <button class="btn btn-ghost" id="exportBtn" title="Copy settings JSON">Export</button>
+        <button class="btn btn-ghost" id="importBtn" title="Paste settings JSON">Import</button>
+        <button class="btn btn-ghost btn-danger" id="resetBtn" title="Restore defaults">Reset</button>
+      </div>
+    </div>
+    <div class="drawer-body" id="settingsGroups"><!-- built by settings.js --></div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <!-- ====================== ONBOARDING / HELP OVERLAY ====================== -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-card">
+      <div class="overlay-mark">
+        <div class="brand-mark big" aria-hidden="true">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </div>
+      </div>
+      <h2>Analyze your computer's audio</h2>
+      <p class="lead">Real-time spectrum, spectrogram, oscilloscope, LUFS/peak loudness and stereo
+        imaging — every color, scale and curve customizable.</p>
+      <ol class="how">
+        <li><b>Pick a source</b> above — <em>System / Tab Audio</em> to analyze what's playing, or a
+          <em>Microphone / Input</em> device.</li>
+        <li>Hit <b>Start</b> and grant permission. For system audio, share a <b>tab</b> or
+          <b>screen</b> and enable <em>“Share audio”</em> in the picker.</li>
+        <li>Open <b>⚙ Settings</b> to make it yours.</li>
+      </ol>
+      <button class="btn btn-primary btn-lg" id="overlayStart">Choose source &amp; start</button>
+      <p class="fineprint" id="overlayNote"></p>
+    </div>
+  </div>
+
+  <!-- ====================== TOASTS ====================== -->
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

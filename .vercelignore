@@ -1,0 +1,6 @@
+# dev-only helpers — not needed in the deployed site
+.claude
+devserver.py
+start.command
+*.log
+.DS_Store
